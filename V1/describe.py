@@ -7,6 +7,29 @@ pd.set_option('display.max_columns', None)
 pd.set_option('display.width', None)
 pd.set_option('display.width', 1000)
 
+def get_dataframe(file_path):
+    """
+    Load data from CSV file and return a pandas DataFrame.
+    
+    Args:
+        file_path: Path to the CSV file
+    
+    Returns:
+        pandas DataFrame or None if file cannot be loaded
+    """
+    try:
+        df = pd.read_csv(file_path)
+        if df.empty:
+            print(f"Warning: {file_path} is empty.")
+            return None
+        return df
+    except FileNotFoundError:
+        print(f"Error: {file_path} not found.")
+        return None
+    except Exception as e:
+        print(f"Error loading {file_path}: {e}")
+        return None
+
 def print_wide_dataframe(df, cols_per_block=5):
     """Affiche un DataFrame large par blocs de colonnes"""
     total_cols = len(df.columns)
@@ -48,11 +71,14 @@ def print_details(arr : np.ndarray, label, max_column=100):
 
 def get_arr(file_path):
     try:
-        df = pd.read_csv(file_path)
-        if df.empty:
-            return
+        df = get_dataframe(file_path)
         arr = df.apply(pd.to_numeric, errors='coerce')
         arr.dropna(axis=1, how='all', inplace=True)
+        
+        # Exclude Index column - only keep course columns
+        if 'Index' in arr.columns:
+            arr = arr.drop('Index', axis=1)
+        
         if arr.empty:
             return
         return (arr.astype(float).to_numpy(), arr.columns.to_list())
