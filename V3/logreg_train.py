@@ -11,17 +11,21 @@ class LogisticRegressionTrainer:
         self.num_iterations = num_iterations
         self.weights = None
         self.bias = None
+        self.impute_means = {}  # Store means for imputation by column name
 
     def preprocess_data(self, df):
         df = self._impute_mean(df)
-        
-        feature_cols = df.select_dtypes(include=[np.number]).columns
+
+        # Select numeric columns excluding target column
+        feature_cols = [col for col in df.select_dtypes(include=[np.number]).columns
+                       if col != 'Hogwarts House']
+        self.feature_columns = feature_cols  # Save for later use in prediction
         X = df[feature_cols].values  # Convert to NumPy array
-        
+
         y = df['Hogwarts House'].values
-        
+
         X = self._normalize(X)
-        
+
         return X, y
 
     def _impute_mean(self, df):
@@ -29,14 +33,15 @@ class LogisticRegressionTrainer:
         Replace the missing values on the dataset with the average value of that subject (numeric columns only)
         """
         df_copy = df.copy()
-        
+
         # Only impute mean for numeric columns (courses)
         numeric_cols = df_copy.select_dtypes(include=[np.number]).columns
-        
+
         for col in numeric_cols:
             col_mean = df_copy[col].mean()
+            self.impute_means[col] = col_mean  # Save for later use in prediction
             df_copy[col] = df_copy[col].fillna(col_mean)
-        
+
         return df_copy
 
     def _normalize(self, X):
@@ -98,17 +103,19 @@ class LogisticRegressionTrainer:
     
     def save_weights(self, models, file_path):
         """Save the learned weights to a file"""
-        
+
         weights_data = {
-            'mean': self.mean,
-            'std': self.std,
-            'models': {house: {'weights': models[house].weights, 'bias': models[house].bias} 
+            'impute_means': self.impute_means,  # Means for imputation (dict)
+            'feature_columns': self.feature_columns,  # Feature column names (list)
+            'mean': self.mean,  # Means for normalization (numpy array)
+            'std': self.std,  # Stds for normalization (numpy array)
+            'models': {house: {'weights': models[house].weights, 'bias': models[house].bias}
                     for house in models}
         }
-        
+
         with open(file_path, 'wb') as f:
             pickle.dump(weights_data, f)
-        
+
         print("All models saved to weights.pkl")
 
 def main():
@@ -118,7 +125,7 @@ def main():
     
     df = pd.read_csv(args.file)
     
-    logisticRegressionTrainer = LogisticRegressionTrainer(learning_rate=0.1, num_iterations=1000)
+    logisticRegressionTrainer = LogisticRegressionTrainer(learning_rate=1, num_iterations=10000)
     X, y = logisticRegressionTrainer.preprocess_data(df)
     
     houses = np.unique(y)
@@ -131,7 +138,7 @@ def main():
         y_binary = (y == house).astype(int)
         
         # Train model
-        trainer = LogisticRegressionTrainer(learning_rate=0.1, num_iterations=1000)
+        trainer = LogisticRegressionTrainer(learning_rate=1, num_iterations=10000)
         trainer.mean = logisticRegressionTrainer.mean
         trainer.std = logisticRegressionTrainer.std
         trainer.train(X, y_binary)
