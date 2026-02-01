@@ -22,7 +22,6 @@ def get_dataframe(file_path):
         if df.empty:
             print(f"Warning: {file_path} is empty.")
             return None
-        df = impute_mean(df)
         return df
     except FileNotFoundError:
         print(f"Error: {file_path} not found.")
@@ -69,21 +68,6 @@ def print_details(arr : np.ndarray, label, max_column=100):
     df = pd.DataFrame(data, index=label)
     df = df.T
     print_wide_dataframe(df, cols_per_block=max_column)
-
-def impute_mean(df):
-    """
-    Replace the missing values on the dataset with the average value of that subject (numeric columns only)
-    """
-    df_copy = df.copy()
-    
-    # Only impute mean for numeric columns (courses)
-    numeric_cols = df_copy.select_dtypes(include=[np.number]).columns
-    
-    for col in numeric_cols:
-        col_mean = df_copy[col].mean()
-        df_copy[col] = df_copy[col].fillna(col_mean)
-    
-    return df_copy
 
 def get_arr(file_path):
     try:
