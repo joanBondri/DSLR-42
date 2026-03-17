@@ -2,6 +2,7 @@
 import pandas as pd
 import numpy as np
 import argparse
+from utils import calculate_column_stats
 
 pd.set_option('display.max_columns', None)
 pd.set_option('display.width', None)
@@ -44,27 +45,26 @@ def print_wide_dataframe(df, cols_per_block=5):
         print(df.iloc[:, i:end])
         print()
 
-
 def print_details(arr : np.ndarray, label, max_column=100):
+    """Print detailed statistics for all columns in the array."""
     np.set_printoptions(threshold=np.inf, linewidth=np.inf)
-    count = np.sum(~np.isnan(arr), axis=0)
-    mean = np.nanmean(arr, axis=0)
-    std = np.nanstd(arr, axis=0)
-    min = np.nanmin(arr, axis=0)
-    p25 = np.nanpercentile(arr, 25, axis=0)
-    p50 = np.nanpercentile(arr, 50, axis=0)
-    p75 = np.nanpercentile(arr, 75, axis=0)
-    max = np.nanmax(arr, axis=0)
+    n_cols = arr.shape[1]
+    all_stats = []
+    for i in range(n_cols):
+        stats = calculate_column_stats(arr[:, i])
+        all_stats.append(stats)
     data = {
-        'Count': count,
-        'Mean': mean,
-        'Std': std,
-        'Min': min,
-        '25%': p25,
-        '50%': p50,
-        '75%': p75,
-        'Max': max
-	}
+        'Count': [s['count'] for s in all_stats],
+        'Mean': [s['mean'] for s in all_stats],
+        'Std': [s['std'] for s in all_stats],
+        'Min': [s['min'] for s in all_stats],
+        '25%': [s['p25'] for s in all_stats],
+        '50%': [s['p50'] for s in all_stats],
+        '75%': [s['p75'] for s in all_stats],
+        'Max': [s['max'] for s in all_stats],
+        'Missing': [s['missing'] for s in all_stats],
+        'Unique': [s['unique'] for s in all_stats],
+    }
     df = pd.DataFrame(data, index=label)
     df = df.T
     print_wide_dataframe(df, cols_per_block=max_column)

@@ -101,6 +101,60 @@ class LogisticRegressionTrainer:
                 cost = self.cost_function(X, y)
                 print(f"Iteration {i}: Cost = {cost}")
     
+    def train_sgd(self, X, y):
+        """Train the logistic regression model using stochastic gradient descent"""
+        m, n = X.shape
+        self.weights = np.zeros(n)
+        self.bias = 0
+
+        for i in range(self.num_iterations):
+            for j in range(m):
+                xi = X[j]
+                yi = y[j]
+                z = np.dot(xi, self.weights) + self.bias
+                prediction = self._sigmoid(z)
+                error = prediction - yi
+
+                # Update weights and bias
+                self.weights -= self.learning_rate * error * xi
+                self.bias -= self.learning_rate * error
+
+            if i % 100 == 0:
+                cost = self.cost_function(X, y)
+                print(f"Iteration {i}: Cost = {cost}")
+
+    def train_minibatch(self, X, y, batch_size=32):
+        """Train the logistic regression model using mini-batch gradient descent"""
+        m, n = X.shape
+        self.weights = np.zeros(n)
+        self.bias = 0
+
+        for i in range(self.num_iterations):
+            # Shuffle the data at the start of each epoch
+            indices = np.arange(m)
+            np.random.shuffle(indices)
+            X_shuffled = X[indices]
+            y_shuffled = y[indices]
+
+            for start in range(0, m, batch_size):
+                end = start + batch_size
+                X_batch = X_shuffled[start:end]
+                y_batch = y_shuffled[start:end]
+
+                z = np.dot(X_batch, self.weights) + self.bias
+                predictions = self._sigmoid(z)
+                error = predictions - y_batch
+
+                dw = (1 / len(y_batch)) * np.dot(X_batch.T, error)
+                db = (1 / len(y_batch)) * np.sum(error)
+
+                self.weights -= self.learning_rate * dw
+                self.bias -= self.learning_rate * db
+
+            if i % 100 == 0:
+                cost = self.cost_function(X, y)
+                print(f"Iteration {i}: Cost = {cost}")
+    
     def save_weights(self, models, file_path):
         """Save the learned weights to a file"""
 
